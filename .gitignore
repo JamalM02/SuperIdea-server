@@ -20,3 +20,29 @@ rad.json
 *.flf
 #Test results file
 TestResults.xml
+# .gitignore
+# Environment variables
+.env
+
+# Node modules
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Optional npm cache directory
+.npm
+
+# IDE files
+.idea/
+# Build directories
+dist/
+build/
+package-lock.json
+
