@@ -10,7 +10,8 @@ const IdeaSchema = new mongoose.Schema({
         required: true,
     },
     user: {
-        type: mongoose.Schema.Types.Mixed, // You can specify the user schema type based on your user schema
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
         required: true,
     },
     likes: [{
@@ -26,6 +27,8 @@ const IdeaSchema = new mongoose.Schema({
         default: Date.now,
     },
 });
+
+IdeaSchema.index({ createdAt: 1 }); // Index for faster sorting by creation date
 
 module.exports = mongoose.model('Idea', IdeaSchema);
 
