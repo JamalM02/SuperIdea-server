@@ -1,8 +1,8 @@
-// routes/route.ideas.js
 const express = require('express');
 const router = express.Router();
 const Idea = require('../models/model.Idea');
 const User = require('../models/model.User');
+const Report = require('../models/model.Report');
 
 // Get all ideas
 router.get('/', async (req, res) => {
@@ -25,6 +25,23 @@ router.post('/', async (req, res) => {
     try {
         const newIdea = await idea.save();
         await User.findByIdAndUpdate(req.body.user, { $inc: { totalIdeas: 1 } });
+
+        const userType = req.body.user.type;
+
+        if (userType === 'Student') {
+            await Report.findOneAndUpdate(
+                {},
+                { $inc: { totalStudentIdeas: 1 }, updatedAt: Date.now() },
+                { new: true, upsert: true }
+            );
+        } else if (userType === 'Teacher') {
+            await Report.findOneAndUpdate(
+                {},
+                { $inc: { totalTeacherIdeas: 1 }, updatedAt: Date.now() },
+                { new: true, upsert: true }
+            );
+        }
+
         res.status(201).json(newIdea);
     } catch (err) {
         res.status(400).json({ message: err.message });
