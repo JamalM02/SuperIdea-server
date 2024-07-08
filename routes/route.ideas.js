@@ -1,3 +1,4 @@
+// routes/route.ideas.js
 const express = require('express');
 const router = express.Router();
 const Idea = require('../models/model.Idea');
@@ -7,7 +8,7 @@ const Report = require('../models/model.Report');
 // Get all ideas
 router.get('/', async (req, res) => {
     try {
-        const ideas = await Idea.find().populate('likes', 'fullName type');
+        const ideas = await Idea.find().populate('user', 'fullName type').populate('likes', 'fullName type');
         res.json(ideas);
     } catch (err) {
         res.status(500).json({ message: err.message });
