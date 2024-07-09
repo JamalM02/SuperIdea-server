@@ -11,21 +11,20 @@ const IdeaSchema = new mongoose.Schema({
         required: true,
     },
     user: {
-        type: mongoose.Schema.Types.Mixed, // You can specify the user schema type based on your user schema
-        required: true,
+        _id: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+        },
+        fullName: {
+            type: String,
+            required: true,
+        },
+        type: {
+            type: String,
+            required: true,
+        },
     },
-    /*
-    user: {
-        type: mongoose.Schema.Types.ObjectId,///***********
-        ref: 'User',
-        required: true,
-    },
-
-    likes: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-    }],
-     */
     likes: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
