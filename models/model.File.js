@@ -6,7 +6,7 @@ const FileSchema = new mongoose.Schema({
         required: true,
     },
     fileData: {
-        type: Buffer,  // Use Buffer to store binary data
+        type: Buffer,
         required: true,
     },
     uploadedBy: {
@@ -32,6 +32,10 @@ const FileSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now,
+    },
+    fileCount: {
+        type: Number,
+        required: true,
     },
 });
 

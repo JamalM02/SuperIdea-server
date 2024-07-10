@@ -5,7 +5,7 @@ const User = require('../models/model.User');
 const File = require('../models/model.File');  // Or your custom file model
 const multer = require('multer');
 const Report = require('../models/model.Report');
-
+const AdmZip = require('adm-zip');
 const upload = multer({ storage: multer.memoryStorage() });  // In-memory storage
 
 // Get all ideas
@@ -45,24 +45,28 @@ router.post('/', upload.array('files', 10), async (req, res) => {
         } else if (user.type === 'Teacher') {
             await Report.findOneAndUpdate(
                 {},
-                { $inc: { totalTeacherIdeas: 1 }, updatedAt: Date.now() },
-                { new: true, upsert: true }
+                { $inc: { totalTeacherIdeas: 1 }, updatedAt: Date.now() }
             );
         }
 
         if (req.files && req.files.length > 0) {
-            const filePromises = req.files.map(file => {
-                const newFile = new File({
-                    fileName: file.originalname,
-                    fileData: file.buffer,  // Store file data in buffer
-                    uploadedBy: existingUser,
-                    ideaId: newIdea._id,
-                });
-                return newFile.save();
+            const zip = new AdmZip();
+            req.files.forEach(file => {
+                zip.addFile(file.originalname, file.buffer);
             });
+            const zipBuffer = zip.toBuffer();
 
-            const savedFiles = await Promise.all(filePromises);
-            newIdea.files = savedFiles.map(file => file._id);
+            const zipFileName = `${idea.title.replace(/\s+/g, '_')}.zip`; // Replace spaces with underscores
+
+            const newFile = new File({
+                fileName: zipFileName,
+                fileData: zipBuffer,
+                fileCount: req.files.length,
+                uploadedBy: existingUser,
+                ideaId: newIdea._id,
+            });
+            await newFile.save();
+            newIdea.files.push(newFile._id);
             await newIdea.save();
         }
 
@@ -72,6 +76,7 @@ router.post('/', upload.array('files', 10), async (req, res) => {
         res.status(400).json({ message: err.message });
     }
 });
+
 
 // Like or unlike an idea
 router.post('/:id/like', async (req, res) => {
@@ -125,5 +130,23 @@ router.get('/files/:id', async (req, res) => {
     }
 });
 
+// Endpoint to get contents of a ZIP file
+router.get('/files/:fileId/contents', async (req, res) => {
+    try {
+        const file = await File.findById(req.params.fileId);
+        if (!file) {
+            return res.status(404).json({ message: 'File not found' });
+        }
+
+        const zip = new AdmZip(file.fileData);
+        const zipEntries = zip.getEntries();
+        const fileList = zipEntries.map(entry => entry.entryName.toString('utf8'));
+
+        res.json(fileList);
+    } catch (err) {
+        console.error('Error getting ZIP contents:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
 
 module.exports = router;
