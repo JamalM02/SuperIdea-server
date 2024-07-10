@@ -10,7 +10,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: ['http://localhost:3000', 'https://superidea-react.vercel.app', 'https://superdemo-lake.vercel.app'],
+        origin: ['http://localhost:3000', 'https://superidea-react.vercel.app'],
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
         credentials: true
     }
@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 5000;
 // Configure CORS
 app.use(cors({
     origin: function (origin, callback) {
-        const allowedOrigins = ['http://localhost:3000', 'https://superidea-react.vercel.app', 'https://superdemo-lake.vercel.app'];
+        const allowedOrigins = ['http://localhost:3000', 'https://superidea-react.vercel.app'];
         if (!origin) return callback(null, true);
         if (allowedOrigins.indexOf(origin) === -1) {
             const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
