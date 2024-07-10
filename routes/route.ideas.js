@@ -1,14 +1,28 @@
-// routes/route.ideas.js
 const express = require('express');
 const router = express.Router();
 const Idea = require('../models/model.Idea');
 const User = require('../models/model.User');
 const Report = require('../models/model.Report');
+const File = require('../models/model.File');
+
+const multer = require('multer');
+const path = require('path');
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + '-' + file.originalname);
+    }
+});
+
+const upload = multer({ storage: storage });
 
 // Get all ideas
 router.get('/', async (req, res) => {
     try {
-        const ideas = await Idea.find().populate('user', 'fullName type').populate('likes', 'fullName type');
+        const ideas = await Idea.find().populate('user', 'fullName type').populate('likes', 'fullName type').populate('files');
         res.json(ideas);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -16,17 +30,18 @@ router.get('/', async (req, res) => {
 });
 
 // Create a new idea
-router.post('/', async (req, res) => {
+router.post('/', upload.array('files', 10), async (req, res) => {
     try {
-        const user = await User.findById(req.body.user._id).select('_id fullName type');
-        if (!user) {
+        const user = JSON.parse(req.body.user);
+        const existingUser = await User.findById(user._id).select('_id fullName type');
+        if (!existingUser) {
             return res.status(400).json({ message: 'User not found' });
         }
 
         const idea = new Idea({
             title: req.body.title,
             description: req.body.description,
-            user: user,
+            user: existingUser,
         });
 
         const newIdea = await idea.save();
@@ -46,8 +61,25 @@ router.post('/', async (req, res) => {
             );
         }
 
+        if (req.files && req.files.length > 0) {
+            const filePromises = req.files.map(file => {
+                const newFile = new File({
+                    fileName: file.originalname,
+                    fileUrl: `/uploads/${file.filename}`,
+                    uploadedBy: existingUser,
+                    ideaId: newIdea._id,
+                });
+                return newFile.save();
+            });
+
+            const savedFiles = await Promise.all(filePromises);
+            newIdea.files = savedFiles.map(file => file._id);
+            await newIdea.save();
+        }
+
         res.status(201).json(newIdea);
     } catch (err) {
+        console.error('Error creating idea:', err);
         res.status(400).json({ message: err.message });
     }
 });
@@ -80,13 +112,12 @@ router.post('/:id/like', async (req, res) => {
         }
 
         const updatedIdea = await idea.save();
-        const populatedIdea = await Idea.findById(updatedIdea._id).populate('user', 'fullName type').populate('likes', 'fullName type').lean();
+        const populatedIdea = await Idea.findById(updatedIdea._id).populate('user', 'fullName type').populate('likes', 'fullName type').populate('files').lean();
         res.status(200).json(populatedIdea);
     } catch (err) {
         console.error('Error in like/unlike idea:', err);
         res.status(400).json({ message: err.message });
     }
 });
-
 
 module.exports = router;

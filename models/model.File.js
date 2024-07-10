@@ -1,16 +1,15 @@
-// models/model.Idea.js
 const mongoose = require('mongoose');
 
-const IdeaSchema = new mongoose.Schema({
-    title: {
+const FileSchema = new mongoose.Schema({
+    fileName: {
         type: String,
         required: true,
     },
-    description: {
+    fileUrl: {
         type: String,
         required: true,
     },
-    user: {
+    uploadedBy: {
         _id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
@@ -25,24 +24,15 @@ const IdeaSchema = new mongoose.Schema({
             required: true,
         },
     },
-    likes: [{
+    ideaId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-    }],
-    likesCount: {
-        type: Number,
-        default: 0,
+        ref: 'Idea',
+        required: true,
     },
-    files: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'File',
-    }],
     createdAt: {
         type: Date,
         default: Date.now,
     },
 });
 
-IdeaSchema.index({ createdAt: 1 }); // Index for faster sorting by creation date
-
-module.exports = mongoose.model('Idea', IdeaSchema);
+module.exports = mongoose.model('File', FileSchema);
