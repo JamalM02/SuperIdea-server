@@ -91,6 +91,7 @@ router.post('/login', async (req, res) => {
     }
 });
 
+
 // Get user achievements
 router.get('/achievements/:userId', async (req, res) => {
     try {
