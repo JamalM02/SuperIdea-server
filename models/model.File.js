@@ -5,8 +5,8 @@ const FileSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    fileUrl: {
-        type: String,
+    fileData: {
+        type: Buffer,  // Use Buffer to store binary data
         required: true,
     },
     uploadedBy: {
@@ -34,6 +34,5 @@ const FileSchema = new mongoose.Schema({
         default: Date.now,
     },
 });
-
 
 module.exports = mongoose.model('File', FileSchema);

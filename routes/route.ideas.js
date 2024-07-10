@@ -2,22 +2,11 @@ const express = require('express');
 const router = express.Router();
 const Idea = require('../models/model.Idea');
 const User = require('../models/model.User');
-const Report = require('../models/model.Report');
-const File = require('../models/model.File');
-
+const File = require('../models/model.File');  // Or your custom file model
 const multer = require('multer');
-const path = require('path');
+const Report = require('../models/model.Report');
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + '-' + file.originalname);
-    }
-});
-
-const upload = multer({ storage: storage });
+const upload = multer({ storage: multer.memoryStorage() });  // In-memory storage
 
 // Get all ideas
 router.get('/', async (req, res) => {
@@ -37,7 +26,6 @@ router.post('/', upload.array('files', 10), async (req, res) => {
         if (!existingUser) {
             return res.status(400).json({ message: 'User not found' });
         }
-
 
         const idea = new Idea({
             title: req.body.title,
@@ -66,7 +54,7 @@ router.post('/', upload.array('files', 10), async (req, res) => {
             const filePromises = req.files.map(file => {
                 const newFile = new File({
                     fileName: file.originalname,
-                    fileUrl: `/uploads/${file.filename}`,
+                    fileData: file.buffer,  // Store file data in buffer
                     uploadedBy: existingUser,
                     ideaId: newIdea._id,
                 });
@@ -120,5 +108,22 @@ router.post('/:id/like', async (req, res) => {
         res.status(400).json({ message: err.message });
     }
 });
+
+// Get all files for an idea
+router.get('/files/:id', async (req, res) => {
+    try {
+        const file = await File.findById(req.params.id);
+        if (!file) {
+            return res.status(404).json({ message: 'File not found' });
+        }
+        res.set('Content-Disposition', `attachment; filename="${file.fileName}"`);
+        res.set('Content-Type', 'application/octet-stream');
+        res.send(file.fileData);
+    } catch (err) {
+        console.error('Error fetching file:', err);
+        res.status(500).json({ message: 'Error fetching file' });
+    }
+});
+
 
 module.exports = router;
