@@ -47,3 +47,4 @@ userSchema.virtual('isLocked').get(function() {
 });
 
 module.exports = mongoose.model('User', userSchema);
+

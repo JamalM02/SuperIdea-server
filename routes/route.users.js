@@ -36,6 +36,7 @@ router.post('/register', async (req, res) => {
             parallelism: 2,
         });
 
+
         const user = new User({
             fullName,
             email,
@@ -90,6 +91,7 @@ router.post('/login', async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 });
+
 
 // Get user achievements
 router.get('/achievements/:userId', async (req, res) => {

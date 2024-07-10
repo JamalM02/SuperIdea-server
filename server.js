@@ -15,6 +15,7 @@ const io = new Server(server, {
         credentials: true
     }
 });
+
 const PORT = process.env.PORT || 5000;
 
 // Configure CORS
@@ -35,6 +36,7 @@ app.use(cors({
 
 // Middleware
 app.use(bodyParser.json());
+app.use('/uploads', express.static('uploads')); // Serve static files from the uploads directory
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
