@@ -43,6 +43,7 @@ const IdeaSchema = new mongoose.Schema({
     },
 });
 
+
 IdeaSchema.index({ createdAt: 1 }); // Index for faster sorting by creation date
 
 module.exports = mongoose.model('Idea', IdeaSchema);

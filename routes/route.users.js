@@ -36,6 +36,7 @@ router.post('/register', async (req, res) => {
             parallelism: 2,
         });
 
+
         const user = new User({
             fullName,
             email,

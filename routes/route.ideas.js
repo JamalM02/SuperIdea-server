@@ -38,6 +38,7 @@ router.post('/', upload.array('files', 10), async (req, res) => {
             return res.status(400).json({ message: 'User not found' });
         }
 
+
         const idea = new Idea({
             title: req.body.title,
             description: req.body.description,
