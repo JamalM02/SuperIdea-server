@@ -12,7 +12,7 @@ const upload = multer({ storage: multer.memoryStorage() });  // In-memory storag
 router.get('/', async (req, res) => {
     try {
         const ideas = await Idea.find()
-            .populate('user', 'fullName type')
+            .populate('user', 'fullName type topContributor')
             .populate('files', 'fileName fileCount createdAt') // Only fetch metadata
             .populate('likes', 'fullName type');
 
@@ -96,7 +96,6 @@ router.post('/', upload.array('files', 10), async (req, res) => {
         res.status(400).json({ message: err.message });
     }
 });
-
 
 // Like or unlike an idea
 router.post('/:id/like', async (req, res) => {

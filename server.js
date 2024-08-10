@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const { Server } = require('socket.io');
+const cron = require('node-cron');
 require('dotenv').config(); // Ensure this line is present if you're using .env for local development
 
 const app = express();
@@ -75,6 +76,32 @@ io.on('connection', (socket) => {
         //console.log('User disconnected');
     });
 });
+
+// Function to update top contributors
+const updateTopContributors = async () => {
+    try {
+        const topContributors = await User.find()
+            .sort({ totalLikes: -1, totalIdeas: -1 })
+            .limit(3)
+            .select('_id');
+
+        // Reset all topContributor fields
+        await User.updateMany({}, { topContributor: false });
+
+        // Update topContributor field for the top 3 users
+        await User.updateMany(
+            { _id: { $in: topContributors.map(contributor => contributor._id) } },
+            { topContributor: true }
+        );
+
+        console.log('Top contributors updated successfully');
+    } catch (err) {
+        console.error('Error updating top contributors:', err);
+    }
+};
+
+// Schedule a cron job to run the updateTopContributors function daily at midnight
+cron.schedule('0 0 * * *', updateTopContributors);
 
 // Start the server
 server.listen(PORT, () => {

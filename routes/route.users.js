@@ -128,7 +128,12 @@ router.get('/top-contributors', async (req, res) => {
         const topContributors = await User.find()
             .sort({ totalLikes: -1, totalIdeas: -1 })
             .limit(3)
-            .select('fullName type totalLikes totalIdeas');
+            .select('fullName type totalLikes totalIdeas topContributor');
+
+        // Update topContributor field
+        await User.updateMany({}, { topContributor: false }); // Reset all topContributor fields
+        await User.updateMany({ _id: { $in: topContributors.map(contributor => contributor._id) } }, { topContributor: true });
+
         res.json(topContributors);
     } catch (err) {
         res.status(500).json({ message: err.message });
