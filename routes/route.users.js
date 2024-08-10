@@ -122,4 +122,17 @@ router.get('/:userId/ideas', async (req, res) => {
     }
 });
 
+// Get top contributors
+router.get('/top-contributors', async (req, res) => {
+    try {
+        const topContributors = await User.find()
+            .sort({ totalLikes: -1, totalIdeas: -1 })
+            .limit(3)
+            .select('fullName type totalLikes totalIdeas');
+        res.json(topContributors);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 module.exports = router;
