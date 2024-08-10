@@ -8,13 +8,33 @@ const Report = require('../models/model.Report');
 const AdmZip = require('adm-zip');
 const upload = multer({ storage: multer.memoryStorage() });  // In-memory storage
 
-// Get all ideas
+// Get all ideas with metadata
 router.get('/', async (req, res) => {
     try {
-        const ideas = await Idea.find().populate('user', 'fullName type').populate('likes', 'fullName type').populate('files');
+        const ideas = await Idea.find()
+            .populate('user', 'fullName type')
+            .populate('files', 'fileName fileCount createdAt') // Only fetch metadata
+            .populate('likes', 'fullName type');
+
         res.json(ideas);
     } catch (err) {
         res.status(500).json({ message: err.message });
+    }
+});
+
+// Fetch actual file data on download
+router.get('/files/:id', async (req, res) => {
+    try {
+        const file = await File.findById(req.params.id);
+        if (!file) {
+            return res.status(404).json({ message: 'File not found' });
+        }
+        res.set('Content-Disposition', `attachment; filename="${file.fileName}"`);
+        res.set('Content-Type', 'application/octet-stream');
+        res.send(file.fileData);
+    } catch (err) {
+        console.error('Error fetching file:', err);
+        res.status(500).json({ message: 'Error fetching file' });
     }
 });
 
@@ -111,22 +131,6 @@ router.post('/:id/like', async (req, res) => {
     } catch (err) {
         console.error('Error in like/unlike idea:', err);
         res.status(400).json({ message: err.message });
-    }
-});
-
-// Get all files for an idea
-router.get('/files/:id', async (req, res) => {
-    try {
-        const file = await File.findById(req.params.id);
-        if (!file) {
-            return res.status(404).json({ message: 'File not found' });
-        }
-        res.set('Content-Disposition', `attachment; filename="${file.fileName}"`);
-        res.set('Content-Type', 'application/octet-stream');
-        res.send(file.fileData);
-    } catch (err) {
-        console.error('Error fetching file:', err);
-        res.status(500).json({ message: 'Error fetching file' });
     }
 });
 
