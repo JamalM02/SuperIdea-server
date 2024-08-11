@@ -1,5 +1,7 @@
+// routes/route.users.js
 const express = require('express');
 const router = express.Router();
+const passport = require('passport');
 const argon2 = require('argon2');
 const User = require('../models/model.User');
 const Idea = require('../models/model.Idea');
@@ -16,26 +18,22 @@ router.post('/register', async (req, res) => {
     }
 
     try {
-        // Check if the email is already registered
         const existingUserByEmail = await User.findOne({ email });
         if (existingUserByEmail) {
             return res.status(400).json({ message: 'Email is already registered' });
         }
 
-        // Check if the name is already registered
         const existingUserByName = await User.findOne({ fullName });
         if (existingUserByName) {
             return res.status(400).json({ message: 'Name is already registered' });
         }
 
-        // Hash the password using Argon2 with custom parameters
         const hashedPassword = await argon2.hash(password, {
             type: argon2.argon2id,
             memoryCost: 2 ** 16, // 64 MB
             timeCost: 4,
             parallelism: 2,
         });
-
 
         const user = new User({
             fullName,
@@ -61,13 +59,11 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        // Check if the account is currently locked
         if (user.lockUntil && user.lockUntil > Date.now()) {
             const unlockTime = new Date(user.lockUntil).toLocaleString();
             return res.status(423).json({ message: `Account is locked. Try again after ${unlockTime}.` });
         }
 
-        // Verify the password using Argon2
         const validPassword = await argon2.verify(user.hashedPassword, password);
         if (!validPassword) {
             user.loginAttempts += 1;
@@ -81,7 +77,6 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        // Reset login attempts and lockUntil on successful login
         user.loginAttempts = 0;
         user.lockUntil = undefined;
         await user.save();
@@ -92,6 +87,15 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// Google OAuth login route
+router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+router.get('/auth/google/callback',
+    passport.authenticate('google', { failureRedirect: '/login' }),
+    (req, res) => {
+        res.redirect('/user-account');
+    }
+);
 
 // Get user achievements
 router.get('/achievements/:userId', async (req, res) => {
@@ -130,8 +134,7 @@ router.get('/top-contributors', async (req, res) => {
             .limit(3)
             .select('fullName type totalLikes totalIdeas topContributor');
 
-        // Update topContributor field
-        await User.updateMany({}, { topContributor: false }); // Reset all topContributor fields
+        await User.updateMany({}, { topContributor: false });
         await User.updateMany({ _id: { $in: topContributors.map(contributor => contributor._id) } }, { topContributor: true });
 
         res.json(topContributors);

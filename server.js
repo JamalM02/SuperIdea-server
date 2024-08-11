@@ -1,17 +1,19 @@
+// server.js
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const { Server } = require('socket.io');
-const cron = require('node-cron');
-require('dotenv').config(); // Ensure this line is present if you're using .env for local development
+const session = require('express-session');
+const passport = require('./passport/passport');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: ['http://localhost:3000', 'https://superidea-react.vercel.app'],
+        origin: ['http://localhost:3000', 'https://scholarsharenet.vercel.app'],
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
         credentials: true
     }
@@ -22,7 +24,7 @@ const PORT = process.env.PORT || 5000;
 // Configure CORS
 app.use(cors({
     origin: function (origin, callback) {
-        const allowedOrigins = ['http://localhost:3000', 'https://superidea-react.vercel.app'];
+        const allowedOrigins = ['http://localhost:3000', 'https://scholarsharenet.vercel.app'];
         if (!origin) return callback(null, true);
         if (allowedOrigins.indexOf(origin) === -1) {
             const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
@@ -38,6 +40,13 @@ app.use(cors({
 // Middleware
 app.use(bodyParser.json());
 app.use('/uploads', express.static('uploads')); // Serve static files from the uploads directory
+app.use(session({
+    secret: 'your_secret_key',
+    resave: false,
+    saveUninitialized: true
+}));
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
@@ -76,32 +85,6 @@ io.on('connection', (socket) => {
         //console.log('User disconnected');
     });
 });
-
-// Function to update top contributors
-const updateTopContributors = async () => {
-    try {
-        const topContributors = await User.find()
-            .sort({ totalLikes: -1, totalIdeas: -1 })
-            .limit(3)
-            .select('_id');
-
-        // Reset all topContributor fields
-        await User.updateMany({}, { topContributor: false });
-
-        // Update topContributor field for the top 3 users
-        await User.updateMany(
-            { _id: { $in: topContributors.map(contributor => contributor._id) } },
-            { topContributor: true }
-        );
-
-        console.log('Top contributors updated successfully');
-    } catch (err) {
-        console.error('Error updating top contributors:', err);
-    }
-};
-
-// Schedule a cron job to run the updateTopContributors function daily at midnight
-cron.schedule('0 0 * * *', updateTopContributors);
 
 // Start the server
 server.listen(PORT, () => {
