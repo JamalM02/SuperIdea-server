@@ -116,16 +116,20 @@ router.post('/:id/like', async (req, res) => {
             // User already liked the idea, so remove the like
             idea.likes.splice(userIndex, 1);
             idea.likesCount -= 1;
-            await User.findByIdAndUpdate(userId, { $inc: { totalLikes: -1 } });
+            await User.findByIdAndUpdate(idea.user._id, { $inc: { totalLikes: -1 } });
         } else {
             // User has not liked the idea, so add the like
             idea.likes.push(userId);
             idea.likesCount += 1;
-            await User.findByIdAndUpdate(userId, { $inc: { totalLikes: 1 } });
+            await User.findByIdAndUpdate(idea.user._id, { $inc: { totalLikes: 1 } });
         }
 
         const updatedIdea = await idea.save();
-        const populatedIdea = await Idea.findById(updatedIdea._id).populate('user', 'fullName type').populate('likes', 'fullName type').populate('files').lean();
+        const populatedIdea = await Idea.findById(updatedIdea._id)
+            .populate('user', 'fullName type')
+            .populate('likes', 'fullName type')
+            .populate('files')
+            .lean();
         res.status(200).json(populatedIdea);
     } catch (err) {
         console.error('Error in like/unlike idea:', err);
