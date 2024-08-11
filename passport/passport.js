@@ -1,15 +1,13 @@
-// server/passport.js
-const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const User = require('../models/model.User'); // Ensure the path to the User model is correct
-
-console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID);
-console.log('GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET);
+const User = require('../models/model.User');
+const passport = require('passport');
 
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: `${process.env.REACT_APP_API_URL_PROD}/users/auth/google/callback`
+    callbackURL: process.env.NODE_ENV === 'production'
+        ? process.env.GOOGLE_CALLBACK_URL_PROD
+        : 'http://localhost:5000/api/users/auth/google/callback'
 }, async (accessToken, refreshToken, profile, done) => {
     try {
         let user = await User.findOne({ googleId: profile.id });
