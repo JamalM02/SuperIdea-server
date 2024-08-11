@@ -1,4 +1,3 @@
-// models/model.User.js
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
@@ -18,7 +17,9 @@ const userSchema = new mongoose.Schema({
     },
     hashedPassword: {
         type: String,
-        required: true,
+        required: function() {
+            return this.type !== 'google';
+        },
     },
     loginAttempts: {
         type: Number,
@@ -47,4 +48,3 @@ userSchema.virtual('isLocked').get(function() {
 });
 
 module.exports = mongoose.model('User', userSchema);
-

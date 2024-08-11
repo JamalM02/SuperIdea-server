@@ -3,9 +3,85 @@ const router = express.Router();
 const argon2 = require('argon2');
 const User = require('../models/model.User');
 const Idea = require('../models/model.Idea');
-
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCK_TIME = 2 * 60 * 60 * 1000; // 2 hours
+
+async function verifyGoogleToken(token) {
+    const ticket = await client.verifyIdToken({
+        idToken: token,
+        audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    return payload;
+}
+
+// Login route
+router.post('/login', async (req, res) => {
+    const { token, email, password } = req.body;
+
+    if (token) {
+        // Google OAuth login
+        try {
+            const payload = await verifyGoogleToken(token);
+            let user = await User.findOne({ email: payload.email });
+
+            if (!user) {
+                // Register new user if not exists
+                user = new User({
+                    fullName: payload.name,
+                    email: payload.email,
+                    hashedPassword: '', // Leave as empty string for Google users
+                    type: 'google', // Mark the user type as Google
+                });
+                await user.save();
+            }
+
+            res.json(user);
+        } catch (error) {
+            console.error('Failed to verify Google token', error);
+            res.status(401).send('Unauthorized');
+        }
+    } else {
+        // Traditional login
+        try {
+            const user = await User.findOne({ email });
+            if (!user) {
+                return res.status(400).json({ message: 'Invalid credentials' });
+            }
+
+            // Check if the account is currently locked
+            if (user.lockUntil && user.lockUntil > Date.now()) {
+                const unlockTime = new Date(user.lockUntil).toLocaleString();
+                return res.status(423).json({ message: `Account is locked. Try again after ${unlockTime}.` });
+            }
+
+            // Verify the password using Argon2
+            const validPassword = await argon2.verify(user.hashedPassword, password);
+            if (!validPassword) {
+                user.loginAttempts += 1;
+                if (user.loginAttempts >= MAX_LOGIN_ATTEMPTS) {
+                    user.lockUntil = Date.now() + LOCK_TIME;
+                    await user.save();
+                    const unlockTime = new Date(user.lockUntil).toLocaleString();
+                    return res.status(423).json({ message: `Account is locked due to multiple failed login attempts. Try again after ${unlockTime}.` });
+                }
+                await user.save();
+                return res.status(400).json({ message: 'Invalid credentials' });
+            }
+
+            // Reset login attempts and lockUntil on successful login
+            user.loginAttempts = 0;
+            user.lockUntil = undefined;
+            await user.save();
+
+            res.json(user);
+        } catch (err) {
+            res.status(500).json({ message: err.message });
+        }
+    }
+});
 
 // Register a new user
 router.post('/register', async (req, res) => {
@@ -51,46 +127,6 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Login a user
-router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
-
-    try {
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(400).json({ message: 'Invalid credentials' });
-        }
-
-        // Check if the account is currently locked
-        if (user.lockUntil && user.lockUntil > Date.now()) {
-            const unlockTime = new Date(user.lockUntil).toLocaleString();
-            return res.status(423).json({ message: `Account is locked. Try again after ${unlockTime}.` });
-        }
-
-        // Verify the password using Argon2
-        const validPassword = await argon2.verify(user.hashedPassword, password);
-        if (!validPassword) {
-            user.loginAttempts += 1;
-            if (user.loginAttempts >= MAX_LOGIN_ATTEMPTS) {
-                user.lockUntil = Date.now() + LOCK_TIME;
-                await user.save();
-                const unlockTime = new Date(user.lockUntil).toLocaleString();
-                return res.status(423).json({ message: `Account is locked due to multiple failed login attempts. Try again after ${unlockTime}.` });
-            }
-            await user.save();
-            return res.status(400).json({ message: 'Invalid credentials' });
-        }
-
-        // Reset login attempts and lockUntil on successful login
-        user.loginAttempts = 0;
-        user.lockUntil = undefined;
-        await user.save();
-
-        res.json(user);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-});
 
 
 // Get user achievements
