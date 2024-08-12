@@ -30,10 +30,10 @@ router.post('/login', async (req, res) => {
             if (!user) {
                 // Register new user if not exists
                 user = new User({
-                    fullName: payload.name,
-                    email: payload.email,
+                    fullName: payload.name.charAt(0).toUpperCase() + payload.name.slice(1).toLowerCase(),
+                    email: payload.email.toLowerCase(),
                     hashedPassword: '', // Leave as empty string for Google users
-                    type: 'google', // Mark the user type as Google
+                    type: 'Student',
                 });
                 await user.save();
             }
@@ -46,7 +46,7 @@ router.post('/login', async (req, res) => {
     } else {
         // Traditional login
         try {
-            const user = await User.findOne({ email });
+            const user = await User.findOne({ email: email.toLowerCase() });  // Convert email to lowercase
             if (!user) {
                 return res.status(400).json({ message: 'Invalid credentials' });
             }
@@ -85,7 +85,9 @@ router.post('/login', async (req, res) => {
 
 // Register a new user
 router.post('/register', async (req, res) => {
-    const { fullName, email, password, type } = req.body;
+    let { fullName, email, password, type } = req.body;
+    email = email.toLowerCase();  // Convert email to lowercase
+    fullName = fullName.charAt(0).toUpperCase() + fullName.slice(1).toLowerCase();  // Capitalize first letter of name
 
     if (password.length < 6) {
         return res.status(400).json({ message: 'Password must be at least 6 characters long' });

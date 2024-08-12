@@ -6,10 +6,12 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true,
         lowercase: true,
+        set: (email) => email.toLowerCase(),
     },
     fullName: {
         type: String,
         required: true,
+        set: (name) => name.charAt(0).toUpperCase() + name.slice(1).toLowerCase(),
     },
     type: {
         type: String,
