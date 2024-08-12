@@ -199,4 +199,26 @@ router.post('/verify', async (req, res) => {
     }
 });
 
+
+// Check if email or name exists
+router.post('/checkExistence', async (req, res) => {
+    const { email, fullName } = req.body;
+
+    try {
+        const existingUserByEmail = await User.findOne({ email });
+        const existingUserByName = await User.findOne({ fullName });
+
+        if (existingUserByEmail) {
+            return res.status(400).json({ field: 'email', message: 'Email is already registered' });
+        }
+
+        if (existingUserByName) {
+            return res.status(400).json({ field: 'fullName', message: 'Name is already registered' });
+        }
+
+        res.status(200).json({ message: 'OK' });
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
 module.exports = router;
