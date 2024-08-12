@@ -20,8 +20,16 @@ const userSchema = new mongoose.Schema({
     hashedPassword: {
         type: String,
         required: function() {
-            return this.type !== 'google';
+            return !this.isGoogleUser;
         },
+    },
+    isGoogleUser: {
+        type: Boolean,
+        default: false,
+    },
+    isVerified: {
+        type: Boolean,
+        default: false,
     },
     loginAttempts: {
         type: Number,
