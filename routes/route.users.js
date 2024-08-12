@@ -176,4 +176,27 @@ router.get('/top-contributors', async (req, res) => {
     }
 });
 
+// Verify email
+router.post('/verify', async (req, res) => {
+    const { email, code } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ success: false, message: 'Invalid email' });
+        }
+
+        if (user.verificationCode === code) {
+            user.isVerified = true;
+            user.verificationCode = undefined; // Remove the code after verification
+            await user.save();
+            res.json({ success: true, message: 'Email verified successfully' });
+        } else {
+            res.status(400).json({ success: false, message: 'Invalid verification code' });
+        }
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 module.exports = router;
