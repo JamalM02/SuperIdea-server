@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema({
     fullName: {
         type: String,
         required: true,
-        set: (name) => name.charAt(0).toUpperCase() + name.slice(1).toLowerCase(),
+        trim: true,
     },
     type: {
         type: String,
