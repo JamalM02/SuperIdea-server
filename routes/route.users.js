@@ -186,4 +186,40 @@ router.post('/checkExistence', async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
+
+// Route to fetch all users
+router.get('/', async (req, res) => {
+    try {
+        const users = await User.find({});
+        res.json(users);
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// Route to change user type
+router.put('/change-type/:userId', async (req, res) => {
+    const { userId } = req.params;
+    const { type } = req.body;
+
+    if (!['Student', 'Lecturer', 'Admin'].includes(type)) {
+        return res.status(400).json({ message: 'Invalid user type' });
+    }
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        user.type = type;
+        await user.save();
+        res.json({ message: 'User type updated successfully' });
+    } catch (error) {
+        console.error('Error updating user type:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
 module.exports = router;

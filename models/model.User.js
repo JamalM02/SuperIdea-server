@@ -15,6 +15,8 @@ const userSchema = new mongoose.Schema({
     },
     type: {
         type: String,
+        enum: ['Student', 'Lecturer', 'Admin'],
+        default: 'student',
         required: true,
     },
     hashedPassword: {
