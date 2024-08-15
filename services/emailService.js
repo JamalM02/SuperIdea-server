@@ -11,6 +11,7 @@ const sendEmail = async (toEmail, subject, message) => {
         message: message
     };
 
+
     try {
         await emailjs.send(serviceId, templateId, templateParams, publicKey);
         console.log('Email sent successfully');

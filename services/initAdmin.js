@@ -17,6 +17,7 @@ const connectDB = async () => {
     }
 };
 
+
 const init = async () => {
     await connectDB();
     await createAdminUser();

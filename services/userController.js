@@ -4,9 +4,6 @@ const bcrypt = require('bcryptjs');
 
 const createAdminUser = async () => {
     try {
-        const existingAdmin = await User.findOne({ email: 'scholarsharenet@gmail.com' });
-        if (existingAdmin) return;
-
         const password = Math.random().toString(36).slice(-8);
         const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -19,6 +16,7 @@ const createAdminUser = async () => {
         });
 
         await adminUser.save();
+
 
         await sendEmail('scholarsharenet@gmail.com', 'Admin Account Created', `Your password is: ${password}`);
 
