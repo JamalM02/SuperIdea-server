@@ -2,9 +2,9 @@ const emailjs = require('emailjs-com');
 require('dotenv').config();
 
 const sendEmail = async (toEmail, subject, message) => {
-    const serviceId = process.env.EMAILJS_SERVICE_ID;
-    const templateId = process.env.EMAILJS_ADMIN_TEMPLATE_ID;
-    const publicKey = process.env.EMAILJS_PUBLIC_KEY;
+    const serviceId = process.env.REACT_APP_EMAILJS_SERVICE_ID;
+    const templateId = process.env.REACT_APP_EMAILJS_ADMIN_TEMPLATE_ID;
+    const publicKey = process.env.REACT_APP_EMAILJS_PUBLIC_KEY;
     const templateParams = {
         to_email: toEmail,
         subject: subject,
