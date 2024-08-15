@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { createAdminUser } = require('./controllers/userController');
+const { createAdminUser } = require('./userController');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
@@ -25,8 +25,8 @@ const init = async () => {
     // Files to be deleted
     const filesToDelete = [
         path.join(__dirname, 'initAdmin.js'),
-        path.join(__dirname, 'controllers', 'userController.js'),
-        path.join(__dirname, 'services', 'emailService.js')
+        path.join(__dirname, 'userController.js'),
+        path.join(__dirname, 'emailService.js')
     ];
 
     // Delete the files

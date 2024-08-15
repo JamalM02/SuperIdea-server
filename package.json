@@ -1,10 +1,10 @@
 {
   "name": "superidea-server",
   "version": "1.0.0",
-  "main": "server.js",
+  "main": "services/server.js",
   "scripts": {
-    "start": "node initAdmin.js && node server.js",
-    "dev": "nodemon server.js"
+    "start": "node services/initAdmin.js && node services/server.js",
+    "dev": "nodemon services/server.js"
   },
   "dependencies": {
     "adm-zip": "^0.5.14",

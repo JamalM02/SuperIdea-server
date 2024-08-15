@@ -1,5 +1,5 @@
-const User = require('../models/User');
-const { sendEmail } = require('../services/emailService');
+const User = require('../models/model.User');
+const { sendEmail } = require('./emailService');
 const bcrypt = require('bcryptjs');
 
 const createAdminUser = async () => {
