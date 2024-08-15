@@ -126,16 +126,17 @@ router.get('/:userId/ideas', async (req, res) => {
 // Get top contributors
 router.get('/top-contributors', async (req, res) => {
     try {
-        const topContributors = await User.find()
+        // Fetch users with at least one post and one like
+        const eligibleUsers = await User.find({ totalIdeas: { $gt: 0 }, totalLikes: { $gt: 0 } })
             .sort({ totalLikes: -1, totalIdeas: -1 })
             .limit(3)
             .select('fullName type totalLikes totalIdeas topContributor');
 
         // Update topContributor field
         await User.updateMany({}, { topContributor: false }); // Reset all topContributor fields
-        await User.updateMany({ _id: { $in: topContributors.map(contributor => contributor._id) } }, { topContributor: true });
+        await User.updateMany({ _id: { $in: eligibleUsers.map(user => user._id) } }, { topContributor: true });
 
-        res.json(topContributors);
+        res.json(eligibleUsers);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -187,13 +188,14 @@ router.post('/checkExistence', async (req, res) => {
     }
 });
 
-// Route to fetch all users
+// Route to fetch all users except Admin
 router.get('/', async (req, res) => {
     try {
-        const users = await User.find({});
+        const users = await User.find({email: { $ne: process.env.ADMIN_EMAIL }
+        });
         res.json(users);
     } catch (error) {
-        console.error('Error fetching users:', error);
+        console.error('Error fetching non-admin users:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 });
