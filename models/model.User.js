@@ -49,6 +49,14 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
+    twoFactorSecret: {
+        type: String,
+        required: false,
+    },
+    isTwoFactorEnabled: {
+        type: Boolean,
+        default: false,
+    },
     topContributor: {
         type: Boolean,
         default: false,

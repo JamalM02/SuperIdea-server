@@ -3,6 +3,8 @@ const router = express.Router();
 const argon2 = require('argon2');
 const User = require('../models/model.User');
 const Idea = require('../models/model.Idea');
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -221,6 +223,129 @@ router.put('/change-type/:userId', async (req, res) => {
     } catch (error) {
         console.error('Error updating user type:', error);
         res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// Enable 2FA
+router.post('/enable-2fa', async (req, res) => {
+    const { userId, password, token } = req.body;
+    if (!userId || !password || !token) {
+        return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const isValidPassword = await argon2.verify(user.hashedPassword, password);
+        if (!isValidPassword) {
+            console.error('Invalid password for user:', userId);
+            return res.status(400).json({ message: 'Invalid password' });
+        }
+
+        const isVerified = speakeasy.totp.verify({
+            secret: user.twoFactorSecret,
+            encoding: 'base32',
+            token,
+        });
+
+        if (!isVerified) {
+            console.error('Invalid 2FA token', { secret: user.twoFactorSecret, token });
+            return res.status(400).json({ message: 'Invalid 2FA token' });
+        }
+
+        user.isTwoFactorEnabled = true;
+        await user.save();
+
+        res.json({ message: '2FA enabled' });
+    } catch (error) {
+        console.error('Error enabling 2FA:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Generate 2FA QR Code
+router.post('/generate-2fa', async (req, res) => {
+    const { userId, password } = req.body;
+    if (!userId || !password) {
+        return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const isValidPassword = await argon2.verify(user.hashedPassword, password);
+        if (!isValidPassword) {
+            console.error('Invalid password for user:', userId);
+            return res.status(400).json({ message: 'Invalid password' });
+        }
+
+        const secret = speakeasy.generateSecret({ name: `Scholar Share Net (${user.email})` });
+        user.twoFactorSecret = secret.base32;
+        await user.save();
+
+        // Generate a moderately complex QR code
+        QRCode.toDataURL(secret.otpauth_url, {
+            width: 300, // Moderate width for a detailed yet scannable QR code
+            errorCorrectionLevel: 'H', // High error correction for some redundancy
+            margin: 2, // Small margin to ensure better focus
+            scale: 8, // Moderate scale to add some detail without overcomplicating
+        }, (err, data_url) => {
+            if (err) {
+                console.error('Error generating QR code:', err);
+                return res.status(500).json({ message: 'Error generating QR code' });
+            }
+            res.json({ qrCode: data_url, secret: secret.base32 });
+        });
+    } catch (error) {
+        console.error('Error generating 2FA QR code:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+router.post('/verify-2fa', async (req, res) => {
+    const { userId, token } = req.body;
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const verified = speakeasy.totp.verify({
+            secret: user.twoFactorSecret, // Ensure this is stored securely
+            encoding: 'base32',
+            token,
+        });
+
+        if (verified) {
+            return res.json({ success: true });
+        } else {
+            return res.status(400).json({ success: false, message: 'Invalid 2FA token' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Disable 2FA
+router.post('/disable-2fa', async (req, res) => {
+    const { userId, password } = req.body;
+    try {
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const isValidPassword = await argon2.verify(user.hashedPassword, password);
+        if (!isValidPassword) return res.status(400).json({ message: 'Invalid password' });
+
+        user.twoFactorSecret = undefined;
+        user.isTwoFactorEnabled = false;
+        await user.save();
+
+        res.json({ message: '2FA disabled' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
     }
 });
 
