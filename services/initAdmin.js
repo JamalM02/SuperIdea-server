@@ -26,7 +26,6 @@ const init = async () => {
     const filesToDelete = [
         path.join(__dirname, 'initAdmin.js'),
         path.join(__dirname, 'userController.js'),
-        path.join(__dirname, 'emailService.js')
     ];
 
     // Delete the files

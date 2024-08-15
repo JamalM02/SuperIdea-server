@@ -1,11 +1,15 @@
 const User = require('../models/model.User');
-const { sendEmail } = require('./emailService');
 const bcrypt = require('bcryptjs');
+require('dotenv').config();
 
 const createAdminUser = async () => {
     try {
-        const password = Math.random().toString(36).slice(-8);
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const plainPassword = process.env.ADMIN_PASSWORD;
+        if (!plainPassword) {
+            throw new Error('ADMIN_PASSWORD not set in environment variables');
+        }
+
+        const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
         const adminUser = new User({
             email: 'scholarsharenet@gmail.com',
@@ -16,9 +20,6 @@ const createAdminUser = async () => {
         });
 
         await adminUser.save();
-
-
-        await sendEmail('scholarsharenet@gmail.com', 'Admin Account Created', `Your password is: ${password}`);
 
         console.log('Admin user created successfully');
     } catch (error) {
