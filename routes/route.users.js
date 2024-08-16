@@ -338,13 +338,32 @@ router.post('/verify-2fa', async (req, res) => {
 
 // Disable 2FA
 router.post('/disable-2fa', async (req, res) => {
-    const { userId, password } = req.body;
+    const { userId, password, token } = req.body;
+
+    if (!userId || !password || !token) {
+        return res.status(400).json({ message: 'Missing required fields' });
+    }
+
     try {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         const isValidPassword = await argon2.verify(user.hashedPassword, password);
-        if (!isValidPassword) return res.status(400).json({ message: 'Invalid password' });
+        if (!isValidPassword) {
+            console.error('Invalid password for user:', userId);
+            return res.status(400).json({ message: 'Invalid password' });
+        }
+
+        const isVerified = speakeasy.totp.verify({
+            secret: user.twoFactorSecret,
+            encoding: 'base32',
+            token,
+        });
+
+        if (!isVerified) {
+            console.error('Invalid 2FA token for disabling 2FA', { userId, token });
+            return res.status(400).json({ message: 'Invalid 2FA token' });
+        }
 
         user.twoFactorSecret = undefined;
         user.isTwoFactorEnabled = false;
@@ -352,6 +371,7 @@ router.post('/disable-2fa', async (req, res) => {
 
         res.json({ message: '2FA disabled' });
     } catch (error) {
+        console.error('Error disabling 2FA:', error);
         res.status(500).json({ message: error.message });
     }
 });
