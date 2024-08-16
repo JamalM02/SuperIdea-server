@@ -281,7 +281,14 @@ router.post('/generate-2fa', async (req, res) => {
             return res.status(400).json({ message: 'Invalid password' });
         }
 
-        const secret = speakeasy.generateSecret({ name: `Scholar Share Net (${user.email})` });
+        // Set the account name similar to the "Heroku" example
+        const serviceName = process.env.SERVICE_NAME;
+        const accountName = user.fullName; // This will appear under the service name
+        const secret = speakeasy.generateSecret({
+            name: `${serviceName}:${accountName}`,
+            issuer: serviceName
+        });
+
         user.twoFactorSecret = secret.base32;
         await user.save();
 
@@ -346,6 +353,20 @@ router.post('/disable-2fa', async (req, res) => {
         res.json({ message: '2FA disabled' });
     } catch (error) {
         res.status(500).json({ message: error.message });
+    }
+});
+
+// Route to check 2FA status
+router.get('/:userId/2fa-status', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.userId).select('isTwoFactorEnabled');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.json({ is2FAEnabled: user.isTwoFactorEnabled });
+    } catch (error) {
+        console.error('Error checking 2FA status:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 });
 
