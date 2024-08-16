@@ -246,6 +246,11 @@ router.post('/generate-2fa', async (req, res) => {
             return res.status(400).json({ message: 'Invalid password' });
         }
 
+        // Check if the user already has 2FA enabled
+        if (user.isTwoFactorEnabled && user.twoFactorSecret) {
+            return res.status(400).json({ message: '2FA is already enabled. Please disable it first if you want to reset.' });
+        }
+
         const serviceName = process.env.SERVICE_NAME;
         const accountName = user.fullName;
         const secret = speakeasy.generateSecret({
