@@ -251,8 +251,8 @@ router.post('/generate-2fa', async (req, res) => {
             return res.status(400).json({ message: '2FA is already enabled. Please disable it first if you want to reset.' });
         }
 
-        const serviceName = process.env.SERVICE_NAME;
-        const accountName = user.fullName;
+        const serviceName = process.env.SERVICE_NAME; // e.g., "MyApp"
+        const accountName = user.email; // Typically, the user's email
         const secret = speakeasy.generateSecret({
             name: `${serviceName}:${accountName}`,
             issuer: serviceName
@@ -266,7 +266,12 @@ router.post('/generate-2fa', async (req, res) => {
         await user.save();
 
         // Generate the otpauth URL
-        const otpAuthUrl = secret.otpauth_url;
+        const otpAuthUrl = speakeasy.otpauthURL({
+            secret: secret.base32, // The secret in base32 format
+            label: `${serviceName}:${accountName}`, // Typically "MyApp:email@example.com"
+            issuer: serviceName, // The name of your service/app
+            encoding: 'base32' // The encoding of the secret
+        });
 
         // Generate QR Code
         QRCode.toDataURL(otpAuthUrl, {
@@ -284,6 +289,7 @@ router.post('/generate-2fa', async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
+
 
 
 // Decrypt and verify 2FA
