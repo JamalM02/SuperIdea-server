@@ -265,8 +265,11 @@ router.post('/generate-2fa', async (req, res) => {
         user.lastQrCodeGeneration = new Date();
         await user.save();
 
+        // Generate the otpauth URL
+        const otpAuthUrl = secret.otpauth_url;
+
         // Generate QR Code
-        QRCode.toDataURL(secret.otpauth_url, {
+        QRCode.toDataURL(otpAuthUrl, {
             width: 300,
             errorCorrectionLevel: 'H',
             margin: 2,
@@ -275,12 +278,13 @@ router.post('/generate-2fa', async (req, res) => {
             if (err) {
                 return res.status(500).json({ message: 'Error generating QR code' });
             }
-            res.json({ qrCode: data_url });
+            res.json({ qrCode: data_url, otpAuthUrl }); // Return the QR code and otpauth URL
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 });
+
 
 // Decrypt and verify 2FA
 router.post('/verify-2fa', async (req, res) => {
