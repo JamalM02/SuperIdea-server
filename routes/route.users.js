@@ -267,6 +267,9 @@ router.post('/enable-2fa', async (req, res) => {
 // Generate 2FA QR Code
 router.post('/generate-2fa', async (req, res) => {
     const { userId, password } = req.body;
+    const COOLDOWN_PERIOD = 5 * 60 * 1000; // 5 minutes
+
+
     if (!userId || !password) {
         return res.status(400).json({ message: 'Missing required fields' });
     }
@@ -281,6 +284,12 @@ router.post('/generate-2fa', async (req, res) => {
             return res.status(400).json({ message: 'Invalid password' });
         }
 
+        const now = Date.now();
+        if (user.lastQrCodeGeneration && now - user.lastQrCodeGeneration.getTime() < COOLDOWN_PERIOD) {
+            const timeRemaining = Math.ceil((COOLDOWN_PERIOD - (now - user.lastQrCodeGeneration.getTime())) / 1000);
+            return res.status(429).json({ message: `Please wait ${timeRemaining} seconds before generating a new QR code.` });
+        }
+
         // Set the account name similar to the "Heroku" example
         const serviceName = process.env.SERVICE_NAME;
         const accountName = user.fullName; // This will appear under the service name
@@ -290,14 +299,15 @@ router.post('/generate-2fa', async (req, res) => {
         });
 
         user.twoFactorSecret = secret.base32;
+        user.lastQrCodeGeneration = new Date(); // Update last generation time
         await user.save();
 
-        // Generate a moderately complex QR code
+        // Generate the QR code
         QRCode.toDataURL(secret.otpauth_url, {
-            width: 300, // Moderate width for a detailed yet scannable QR code
-            errorCorrectionLevel: 'H', // High error correction for some redundancy
-            margin: 2, // Small margin to ensure better focus
-            scale: 8, // Moderate scale to add some detail without overcomplicating
+            width: 300,
+            errorCorrectionLevel: 'H',
+            margin: 2,
+            scale: 8,
         }, (err, data_url) => {
             if (err) {
                 console.error('Error generating QR code:', err);

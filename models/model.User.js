@@ -53,6 +53,9 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: false,
     },
+    lastQrCodeGeneration: {
+        type: Date
+    },
     isTwoFactorEnabled: {
         type: Boolean,
         default: false,
