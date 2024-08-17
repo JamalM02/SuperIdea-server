@@ -230,7 +230,7 @@ router.put('/change-type/:userId', async (req, res) => {
 
 
 
-// Generate 2FA QR Code
+// Generate 2FA QR Code and secret key
 router.post('/generate-2fa', async (req, res) => {
     const { userId, password } = req.body;
     if (!userId || !password) {
@@ -253,10 +253,9 @@ router.post('/generate-2fa', async (req, res) => {
 
         const serviceName = process.env.SERVICE_NAME; // e.g., "MyApp"
         const accountName = user.email; // Typically, the user's email
-        const secret = speakeasy.generateSecret({
-            name: `${serviceName}:${accountName}`,
-            issuer: serviceName
-        });
+
+        // Generate a 16-character secret key
+        const secret = speakeasy.generateSecret({ length: 20 }); // Set to 20 bytes for a 32-character Base32 key
 
         // Encrypt the secret before saving it
         const encryptedSecret = encrypt(secret.base32);
@@ -275,7 +274,7 @@ router.post('/generate-2fa', async (req, res) => {
 
         // Generate QR Code
         QRCode.toDataURL(otpAuthUrl, {
-            width: 300,
+            width: 200,
             errorCorrectionLevel: 'H',
             margin: 2,
             scale: 8,
@@ -283,12 +282,13 @@ router.post('/generate-2fa', async (req, res) => {
             if (err) {
                 return res.status(500).json({ message: 'Error generating QR code' });
             }
-            res.json({ qrCode: data_url, otpAuthUrl }); // Return the QR code and otpauth URL
+            res.json({ qrCode: data_url, secret: secret.base32 }); // Return the QR code and the secret key
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 });
+
 
 
 
