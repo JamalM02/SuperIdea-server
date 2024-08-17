@@ -192,17 +192,36 @@ router.post('/checkExistence', async (req, res) => {
     }
 });
 
-// Route to fetch all users except Admin
+// Route to fetch all users
 router.get('/', async (req, res) => {
     try {
-        const users = await User.find({email: { $ne: process.env.ADMIN_EMAIL }
-        });
-        res.json(users);
+        const requestingUserEmail = req.query.email; // Fetch email from query parameter
+
+        // If no email is provided, return an error
+        if (!requestingUserEmail) {
+            return res.status(400).json({ message: 'Requesting user email is required' });
+        }
+
+        // If the requesting user is the super admin
+        if (requestingUserEmail.trim().toLowerCase() === process.env.ADMIN_EMAIL.trim().toLowerCase()) {
+            const users = await User.find({
+                email: { $ne: process.env.ADMIN_EMAIL }}); // Fetch all users, including admins
+            res.json(users);
+        } else {
+            // Exclude admins for non-super admin users
+            const users = await User.find({
+                email: { $ne: process.env.ADMIN_EMAIL },
+                type: { $ne: 'Admin' }
+            });
+            res.json(users);
+        }
     } catch (error) {
-        console.error('Error fetching non-admin users:', error);
+        console.error('Error fetching users:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 });
+
+
 
 // Route to change user type
 router.put('/change-type/:userId', async (req, res) => {
