@@ -6,7 +6,7 @@ ScholarShareNet is a platform built to help students collaborate and share study
 
 ## Features
 
-- **User Registration and Authentication**: Secure sign-up and login with email verification, and OAuth options like Google.
+- **User Registration and Authentication**: Secure sign-up and login with email verification.
 - **File Sharing**: Users can upload and download study materials, including notes, slides, past exams, and more.
 - **Discussion Forums**: Engage in topic-specific forums where students can ask questions and discuss study materials.
 - **User Profiles**: Personalize your profile with academic details and interests.
