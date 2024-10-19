@@ -22,7 +22,7 @@ rad.json
 TestResults.xml
 # .gitignore
 # Environment variables
-.env
+*.env
 
 # Node modules
 node_modules/
