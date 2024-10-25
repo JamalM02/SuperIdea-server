@@ -5,7 +5,8 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const { Server } = require('socket.io');
 const cron = require('node-cron');
-require('dotenv').config(); // Ensure this line is present if you're using .env for local development
+const User = require('../models/model.User'); // Import User model here
+require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
@@ -37,7 +38,7 @@ app.use(cors({
 
 // Middleware
 app.use(bodyParser.json());
-app.use('/uploads', express.static('uploads')); // Serve static files from the uploads directory
+app.use('/uploads', express.static('uploads'));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
@@ -64,7 +65,7 @@ app.use((req, res, next) => {
 
 // Handle the root route
 app.get('/', (req, res) => {
-    res.send('Welcome to the Super Idea API');
+    res.send('Welcome to the ScholarShareNet API');
 });
 
 // Socket.IO event handling
@@ -85,7 +86,7 @@ io.on('connection', (socket) => {
 // Function to update top contributors
 const updateTopContributors = async () => {
     try {
-        const topContributors = await User.find()
+        const topContributors = await User.find({ totalIdeas: { $gt: 0 }, totalLikes: { $gt: 0 } })
             .sort({ totalLikes: -1, totalIdeas: -1 })
             .limit(3)
             .select('_id');
@@ -105,8 +106,8 @@ const updateTopContributors = async () => {
     }
 };
 
-// Schedule a cron job to run the updateTopContributors function daily at midnight
-cron.schedule('0 0 * * *', updateTopContributors);
+// Schedule a weekly cron job to run updateTopContributors every Sunday at midnight
+cron.schedule('0 0 * * 0', updateTopContributors);
 
 // Start the server
 server.listen(PORT, () => {

@@ -127,20 +127,15 @@ router.get('/:userId/ideas', async (req, res) => {
     }
 });
 
-// Get top contributors
+// Get top contributors route
 router.get('/top-contributors', async (req, res) => {
     try {
-        // Fetch users with at least one post and one like
-        const eligibleUsers = await User.find({ totalIdeas: { $gt: 0 }, totalLikes: { $gt: 0 } })
+        const topContributors = await User.find({ topContributor: true })
             .sort({ totalLikes: -1, totalIdeas: -1 })
             .limit(3)
             .select('fullName type totalLikes totalIdeas topContributor');
 
-        // Update topContributor field
-        await User.updateMany({}, { topContributor: false }); // Reset all topContributor fields
-        await User.updateMany({ _id: { $in: eligibleUsers.map(user => user._id) } }, { topContributor: true });
-
-        res.json(eligibleUsers);
+        res.json(topContributors);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
