@@ -101,6 +101,10 @@ router.post('/', upload.array('files', 10), async (req, res) => {
 router.post('/:id/like', async (req, res) => {
     try {
         const { userId } = req.body;
+        const user = await User.findById(userId);
+        if (user.type === 'Lecturer') {
+            return res.status(400).json({ message: 'Lecturers should use the rating system.' });
+        }
         if (!userId) {
             return res.status(400).json({ message: 'User ID is required' });
         }
@@ -155,5 +159,50 @@ router.get('/files/:fileId/contents', async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
+
+router.post('/:id/rate', async (req, res) => {
+    const { userId, rating } = req.body;
+
+    // Ensure the rating is between 1 and 5
+    if (rating < 1 || rating > 5) {
+        return res.status(400).json({ message: 'Rating must be between 1 and 5' });
+    }
+
+    try {
+        const idea = await Idea.findById(req.params.id);
+        if (!idea) return res.status(404).json({ message: 'Idea not found' });
+
+        // Find if the lecturer has already rated
+        const existingRatingIndex = idea.ratings.findIndex(r => r.userId.toString() === userId);
+
+        if (existingRatingIndex !== -1) {
+            // Update existing rating, adjust totalRatings by removing old value first
+            idea.totalRatings -= idea.ratings[existingRatingIndex].rating;
+            idea.ratings[existingRatingIndex].rating = rating;
+        } else {
+            // Add new rating and increment ratingCount
+            idea.ratings.push({ userId, rating });
+            idea.ratingCount += 1;
+        }
+
+        // Update total ratings by adding the new rating value
+        idea.totalRatings += rating;
+
+        await idea.save();
+
+        // Repopulate necessary fields, including files and user info
+        const updatedIdea = await Idea.findById(idea._id)
+            .populate('user', 'fullName type')
+            .populate('files', 'fileName fileCount createdAt');
+
+        res.json(updatedIdea); // Send back fully populated idea with updated ratings
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+
+
+
 
 module.exports = router;

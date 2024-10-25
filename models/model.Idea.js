@@ -41,6 +41,20 @@ const IdeaSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    ratings: [
+        {
+            userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+            rating: { type: Number, min: 1, max: 5 }
+        }
+    ],
+    totalRatings: {
+        type: Number,
+        default: 0,
+    },
+    ratingCount: {
+        type: Number,
+        default: 0,
+    },
 });
 
 
