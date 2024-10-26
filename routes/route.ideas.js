@@ -7,6 +7,8 @@ const multer = require('multer');
 const Report = require('../models/model.Report');
 const AdmZip = require('adm-zip');
 const upload = multer({ storage: multer.memoryStorage() });  // In-memory storage
+const mongoose = require('mongoose');
+
 
 // Get all ideas with metadata
 router.get('/', async (req, res) => {
@@ -15,6 +17,7 @@ router.get('/', async (req, res) => {
             .populate('user', 'fullName type topContributor')
             .populate('files', 'fileName fileCount createdAt') // Only fetch metadata
             .populate('likes', 'fullName type');
+
 
         res.json(ideas);
     } catch (err) {
@@ -172,34 +175,62 @@ router.post('/:id/rate', async (req, res) => {
         const idea = await Idea.findById(req.params.id);
         if (!idea) return res.status(404).json({ message: 'Idea not found' });
 
-        // Find if the lecturer has already rated
+        // Find if the user has already rated this idea
         const existingRatingIndex = idea.ratings.findIndex(r => r.userId.toString() === userId);
+        let ratingDelta = rating;
 
         if (existingRatingIndex !== -1) {
-            // Update existing rating, adjust totalRatings by removing old value first
-            idea.totalRatings -= idea.ratings[existingRatingIndex].rating;
+            // Adjust totalRatings by removing the old rating value first
+            ratingDelta = rating - idea.ratings[existingRatingIndex].rating;
             idea.ratings[existingRatingIndex].rating = rating;
         } else {
             // Add new rating and increment ratingCount
             idea.ratings.push({ userId, rating });
             idea.ratingCount += 1;
+            ratingDelta = rating;
         }
 
-        // Update total ratings by adding the new rating value
-        idea.totalRatings += rating;
-
+        // Update total ratings for this idea
+        idea.totalRatings += ratingDelta;
         await idea.save();
 
-        // Repopulate necessary fields, including files and user info
+        // After saving the idea, recalculate the average ratings for the owner of the idea
+        const ideaOwnerId = idea.user._id;
+
+        // Find all ideas belonging to the owner
+        const ownerIdeas = await Idea.find({ 'user._id': ideaOwnerId });
+
+        // Recalculate the total ratings and rating count for all ideas owned by the user
+        let totalRatingsSum = 0;
+        let totalRatingCount = 0;
+
+        ownerIdeas.forEach(ownerIdea => {
+            totalRatingsSum += ownerIdea.totalRatings;
+            totalRatingCount += ownerIdea.ratingCount;
+        });
+
+        const newAverageRating = totalRatingCount > 0 ? totalRatingsSum / totalRatingCount : 0;
+
+        // Update the owner's user document with the new average rating
+        await User.findByIdAndUpdate(ideaOwnerId, {
+            totalRatings: newAverageRating,
+            ratingCount: totalRatingCount
+        });
+
+        // Repopulate necessary fields, including user info and files, if needed
         const updatedIdea = await Idea.findById(idea._id)
             .populate('user', 'fullName type')
             .populate('files', 'fileName fileCount createdAt');
 
         res.json(updatedIdea); // Send back fully populated idea with updated ratings
     } catch (err) {
-        res.status(400).json({ message: err.message });
+        console.error('Error updating rating:', err);
+        res.status(500).json({ message: 'Server error' });
     }
 });
+
+
+
 
 
 

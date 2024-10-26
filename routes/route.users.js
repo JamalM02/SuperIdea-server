@@ -101,7 +101,7 @@ router.post('/register', async (req, res) => {
 // Get user achievements
 router.get('/achievements/:userId', async (req, res) => {
     try {
-        const user = await User.findById(req.params.userId).select('totalIdeas totalLikes topContributor');
+        const user = await User.findById(req.params.userId).select('totalIdeas totalLikes topContributor score AvrRating ratingCount');
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -115,8 +115,10 @@ router.get('/achievements/:userId', async (req, res) => {
 router.get('/:userId/ideas', async (req, res) => {
     try {
         const ideas = await Idea.find({ 'user._id': req.params.userId })
-            .select('title likesCount likes')
-            .populate('likes', 'fullName type');
+            .select('title likesCount likes ratings ratingCount totalRatings')  // Include ratings data
+            .populate('likes', 'fullName type')
+            .populate('ratings.userId', 'fullName'); // Populate user names in ratings;
+
         if (!ideas) {
             return res.status(404).json({ message: 'No ideas found for this user' });
         }
@@ -131,15 +133,21 @@ router.get('/:userId/ideas', async (req, res) => {
 router.get('/top-contributors', async (req, res) => {
     try {
         const topContributors = await User.find({ topContributor: true })
-            .sort({ totalLikes: -1, totalIdeas: -1 })
+            .sort({ score: -1 }) // Sort by score in descending order
             .limit(3)
-            .select('fullName type totalLikes totalIdeas topContributor');
+            .select('fullName type totalLikes totalIdeas topContributor score totalRatings ratingCount');
 
-        res.json(topContributors);
+        const contributorsWithAvgRating = topContributors.map(contributor => ({
+            ...contributor._doc, // Access the raw document
+            totalRatings: contributor.ratingCount > 0 ? contributor.totalRatings.toFixed(1) : 'No ratings'
+        }));
+
+        res.json(contributorsWithAvgRating);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
+
 
 // Verify email
 router.post('/verify', async (req, res) => {

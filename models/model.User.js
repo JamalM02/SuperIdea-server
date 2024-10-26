@@ -63,7 +63,12 @@ const userSchema = new mongoose.Schema({
     topContributor: {
         type: Boolean,
         default: false,
-    }
+    },
+    ratingCount: { type: Number, default: 0 }, // Number of times the user has been rated
+    score: { type: Number, default: 0 }, // User's score based on ideas, likes, and ratings
+    totalRatings: { type: Number, default: 0 }, // Sum of all ratings received by the user
+
+
 }, { timestamps: true });
 
 userSchema.virtual('isLocked').get(function() {

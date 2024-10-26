@@ -83,31 +83,53 @@ io.on('connection', (socket) => {
     });
 });
 
-// Function to update top contributors
-const updateTopContributors = async () => {
-    try {
-        const topContributors = await User.find({ totalIdeas: { $gt: 0 }, totalLikes: { $gt: 0 } })
-            .sort({ totalLikes: -1, totalIdeas: -1 })
-            .limit(3)
-            .select('_id');
+const calculateScore = (user) => {
+    const weightIdeas = process.env.WEIGHTIDEAS/100;
+    const weightLikes = process.env.WEIGHTLIKES/100;
+    const weightRating = process.env.WEIGHTRATING/100;
 
-        // Reset all topContributor fields
+    return (user.totalIdeas * weightIdeas) +
+        (user.totalLikes * weightLikes) +
+        (user.totalRatings * weightRating);
+};
+
+const updateScoresAndTopContributors = async () => {
+    try {
+        const users = await User.find({ totalIdeas: { $gt: 0 }, totalLikes: { $gt: 0 } });
+
+        // Calculate and update score for each user
+        const usersWithScores = await Promise.all(users.map(async (user) => {
+            let score = calculateScore(user);
+            score = parseFloat(score.toFixed(1)); // Format score to one decimal place
+            await User.findByIdAndUpdate(user._id, { score });
+            return { ...user._doc, score };  // Return user data with score for further sorting
+        }));
+
+        // Filter users with a minimum score of 1
+        const eligibleUsers = usersWithScores.filter(user => user.score >= 1);
+
+        // Sort eligible users by score in descending order and select the top 3
+        const top3Users = eligibleUsers
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3);
+
+        // Reset topContributor field for all users
         await User.updateMany({}, { topContributor: false });
 
-        // Update topContributor field for the top 3 users
+        // Set topContributor: true for the top 3 users by IDs
         await User.updateMany(
-            { _id: { $in: topContributors.map(contributor => contributor._id) } },
+            { _id: { $in: top3Users.map(user => user._id) } },
             { topContributor: true }
         );
 
-        console.log('Top contributors updated successfully');
+        console.log('Scores updated for all users and top contributors set for the top 3 with minimum score 1');
     } catch (err) {
-        console.error('Error updating top contributors:', err);
+        console.error('Error updating scores and top contributors:', err);
     }
 };
 
-// Schedule a weekly cron job to run updateTopContributors every Sunday at midnight
-cron.schedule('0 0 * * 0', updateTopContributors);
+cron.schedule(process.env.UPDATESCHADULE, updateScoresAndTopContributors);
+
 
 // Start the server
 server.listen(PORT, () => {
