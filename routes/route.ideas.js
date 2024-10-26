@@ -65,7 +65,7 @@ router.post('/', upload.array('files', 10), async (req, res) => {
                 { $inc: { totalStudentIdeas: 1 }, updatedAt: Date.now() },
                 { new: true, upsert: true }
             );
-        } else if (user.type === 'Teacher') {
+        } else if (user.type === 'Lecturer') {
             await Report.findOneAndUpdate(
                 {},
                 { $inc: { totalTeacherIdeas: 1 }, updatedAt: Date.now() }
