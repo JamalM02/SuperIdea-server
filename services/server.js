@@ -12,7 +12,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: ['http://localhost:3000', 'https://scholarsharenet.vercel.app'],
+        origin: ['http://localhost:3000', 'https://scholarsharenet.vercel.app', 'https://scholarsharenet.jmd-solutions.com'],
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
         credentials: true
     }
@@ -23,7 +23,7 @@ const PORT = process.env.PORT || 5000;
 // Configure CORS
 app.use(cors({
     origin: function (origin, callback) {
-        const allowedOrigins = ['http://localhost:3000', 'https://scholarsharenet.vercel.app'];
+        const allowedOrigins = ['http://localhost:3000', 'https://scholarsharenet.vercel.app', 'https://scholarsharenet.jmd-solutions.com'];
         if (!origin) return callback(null, true);
         if (allowedOrigins.indexOf(origin) === -1) {
             const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
@@ -54,9 +54,9 @@ const userRoutes = require('../routes/route.users');
 const ideaRoutes = require('../routes/route.ideas');
 const reportRoutes = require('../routes/route.reports');
 
-app.use('/api/users', userRoutes);
-app.use('/api/ideas', ideaRoutes);
-app.use('/api/reports', reportRoutes);
+app.use('/users', userRoutes);
+app.use('/ideas', ideaRoutes);
+app.use('/reports', reportRoutes);
 
 app.use((req, res, next) => {
     console.log(`${req.method} ${req.url}`);
