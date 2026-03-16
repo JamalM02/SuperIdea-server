@@ -8,11 +8,13 @@ const cron = require('node-cron');
 const User = require('../models/model.User'); // Import User model here
 require('dotenv').config();
 
+const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000'];
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: ['http://localhost:3000', 'https://scholarsharenet.vercel.app', 'https://scholarsharenet.jmd-solutions.com'],
+        origin: allowedOrigins,
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
         credentials: true
     }
@@ -23,7 +25,6 @@ const PORT = process.env.PORT || 5000;
 // Configure CORS
 app.use(cors({
     origin: function (origin, callback) {
-        const allowedOrigins = ['http://localhost:3000', 'https://scholarsharenet.vercel.app', 'https://scholarsharenet.jmd-solutions.com'];
         if (!origin) return callback(null, true);
         if (allowedOrigins.indexOf(origin) === -1) {
             const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
