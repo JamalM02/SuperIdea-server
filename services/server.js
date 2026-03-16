@@ -39,7 +39,6 @@ app.use(cors({
 
 // Middleware
 app.use(bodyParser.json());
-app.use('/uploads', express.static('uploads'));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
